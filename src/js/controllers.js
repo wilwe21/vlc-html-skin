@@ -22,9 +22,10 @@ function updateStatus() {
 				$('#mediaArtist2').append($('[name="artist"]', data).text());
                 $('#totalTime').append(format_time($('length', data).text()));
                 $('#currentTime').append(format_time($('time', data).text()));
-                if (!$('#progress-bar').data('clicked')) {
+                if (!$('#rogress-bar').data('clicked')) {
                     let v = toFloat($('position', data).text()) * 100
 					$("#progress-bar").css({"background": `linear-gradient(to right, #c6a0f6 0%, #c6a0f6 ${v}%, #494d64 ${v}%, #494d64 100%)`})
+					$("#mini-progress-bar").css({"background": `linear-gradient(to right, #c6a0f6 0%, #c6a0f6 ${v}%, #494d64 ${v}%, #494d64 100%)`})
                 }
                 $('#currentVolume').append(Math.round($('volume', data).text() / 2.56) + '%');
                 /* Don't interfere with the user's action */

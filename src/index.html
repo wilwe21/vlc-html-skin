@@ -216,6 +216,15 @@
             border-radius: 0; /* Flat edge on the footer */
             outline: none;
         }
+				#mini-progress-bar {
+						height: 4px;
+						width: 100%
+				}
+				.times {
+						margin-top: 5px;
+						justify-content: space-between;
+  					display: flex;
+				}
     </style>
 
     <!-- Catppuccin Macchiato Color Palette for Tailwind -->
@@ -273,8 +282,11 @@
         
         <!-- Times Display -->
         <div class="flex justify-between w-full max-w-sm px-4 text-ctp-subtext1 text-xs">
+						<span id="mini-progress-bar"/>
+						<div class="times">
             <span id="currentTime" class="dynamic"></span>
 						<span id="totalTime" class="dynamic"></span>
+						</div>
         </div>
 
         <!-- Related Content Mock -->
