@@ -17,9 +17,11 @@ function updateStatus() {
             if (current_que == 'main') {
                 $('.dynamic').empty();
                 $('#mediaTitle').append($('[name="title"]', data).text());
-				$('#mediaArtist').append($('[name="artist"]', data).text());
+				$('#mediaArtist').append(`by ${$('[name="artist"]', data).text()}`);
                 $('#mediaTitle2').append($('[name="title"]', data).text());
 				$('#mediaArtist2').append($('[name="artist"]', data).text());
+				$('#mediaAlbum').append($('[name="album"]', data).text());
+				$('#mediaAlbumArtist').append($('[name="ALBUMARTIST"]', data).text());
                 $('#totalTime').append(format_time($('length', data).text()));
                 $('#currentTime').append(format_time($('time', data).text()));
                 if (!$('#rogress-bar').data('clicked')) {
@@ -516,16 +518,32 @@ function updateNextPlaylist() {
 		url: 'requests/playlist.xml', // Standard VLC playlist endpoint
 		success: function(xml) {
 			let playlistHtml = '';
-			const currentId = parseInt($(xml).find('current').text(), 10);
-
-			$(xml).find('leaf').each(function() {
+			let leafs = $(xml).find('leaf');
+			let byl = false
+			let listbe = [];
+			let listaf = [];
+			leafs.each(function() {
 				const id = $(this).attr('id');
-				const name = $(this).attr('name');
-				const isCurrent = parseInt(id, 10) === currentId;
+				const title = $(this).attr('name');
+				const isCurrent = $(this).attr('current') ? true : false;
+				const artist = $(this).attr('artist') ? $(this).attr('artist') : 'Unknown Artist';
+				let item = {i: id, t: title, c: isCurrent, a: artist};
+				if (isCurrent) {
+					byl = true
+				}
+				if (byl) {
+					listaf.push(item)
+				} else {
+					listbe.push(item)
+				}
+			});
+			let ending = listaf.concat(listbe);
 
-				const parts = name.split(' - ');
-				const title = parts.length > 1 ? parts[1] : name;
-				const artist = parts.length > 1 ? parts[0] : 'Unknown Artist';
+			ending.forEach(function(item) {
+				const id = item.i;
+				const title = item.t;
+				const isCurrent = item.c;
+				const artist = item.a;
 
 				playlistHtml += playlistItemTemplate(id, title, artist, isCurrent);
 			});
@@ -545,7 +563,7 @@ $(function () {
 	updateNextPlaylist();
 	setInterval(function() {
 		updateNextPlaylist();
-	}, 5000);
+	}, 1000);
     updateStatus();
     updateStreams();
     updateEQ();

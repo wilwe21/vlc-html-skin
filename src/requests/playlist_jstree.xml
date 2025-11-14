@@ -54,7 +54,7 @@ function print_playlist(item)
 			end
 		end
     else
-        local name, path = vlc.strings.convert_xml_special_chars(item.name or "", item.path or "")
+        local name, artist, path = vlc.strings.convert_xml_special_chars(item.name or "", item.artist or "", item.path or "")
         name = name or ""
         local current_item_id = vlc.playlist.current()
         local current = ""
@@ -64,7 +64,7 @@ function print_playlist(item)
                 current = 'current="current"'
             end
         end
-        print('<item id="plid_' ..tostring(item.id).. '" uri="' ..tostring(path).. '" name="' ..name.. '" ro="' ..(item.flags.ro and "ro" or "rw").. '" duration ="' ..math.floor(item.duration).. '" ' ..current.. ' ><content><name>' ..name.. '</name></content></item>')
+        print('<item id="plid_' ..tostring(item.id).. '" uri="' ..tostring(path).. '" name="' ..name.. '" artist="' ..artist.. '" ro="' ..(item.flags.ro and "ro" or "rw").. '" duration ="' ..math.floor(item.duration).. '" ' ..current.. ' ><content><name>' ..name.. '</name></content></item>')
     end
 end
 

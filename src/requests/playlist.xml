@@ -38,7 +38,7 @@ local printleaf = function(item)
 		if (k~="type") then
 			print(" "..httprequests.xmlString(k).."=\""..httprequests.xmlString(v).."\"")
 		end
-    end
+  end
 
 	print ("/>")
 end
