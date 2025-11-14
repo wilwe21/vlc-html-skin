@@ -1,0 +1,324 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLC</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+		<!-- scripts -->
+		<script type="text/javascript" src="js/common.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.13/jquery-ui.min.js"></script>
+		<script type="text/javascript" src="js/ui.js"></script>
+		<script type="text/javascript" src="js/controllers.js"></script>
+		<script type="text/javascript">
+		//<![CDATA[
+			var pollStatus	=	true;
+			$(function(){
+				$('#buttonPlayList').click(function(){
+					$('#libraryContainer').animate({
+						height: 'toggle'
+					});
+					$('#buttonszone1').animate({
+						width: 'toggle'
+					});
+					return false;
+				});
+				$('#buttonViewer').click(function(){
+					$('#viewContainer').animate({
+						height: 'toggle'
+					})
+					return false;
+				});
+				$('#buttonEqualizer').click(function(){
+					updateEQ();
+					$('#window_equalizer').dialog('open');
+					return false;
+				})
+				$('#buttonOffsets').click(function(){
+					$('#window_offset').dialog('open');
+					return false;
+				});
+				$('#buttonBatch').click(function(){
+					$('#window_batch').dialog('open');
+					return false;
+				});
+				$('#buttonOpen').click(function(){
+					browse_target	=	'default';
+					browse();
+					$('#window_browse').dialog('open');
+					return false;
+				});
+				$('#buttonPrev').mousedown(function(){
+					intv	=	1;
+					ccmd	=	'prev';
+					setIntv();
+					return false;
+				});
+				$('#buttonPrev').mouseup(function(){
+					if(intv<=5){
+						sendCommand({'command':'pl_previous'});
+					}
+					intv	=	0;
+					return false;
+				});
+				$('#buttonNext').mousedown(function(){
+					intv	=	1;
+					ccmd	=	'next';
+					setIntv();
+					return false;
+				});
+				$('#buttonNext').mouseup(function(){
+					if(intv<=5){
+						sendCommand({'command':'pl_next'});
+					}
+					intv	=	0;
+					return false;
+				});
+				$('#buttonNext2').mousedown(function(){
+					intv	=	1;
+					ccmd	=	'next';
+					setIntv();
+					return false;
+				});
+				$('#buttonNext2').mouseup(function(){
+					if(intv<=5){
+						sendCommand({'command':'pl_next'});
+					}
+					intv	=	0;
+					return false;
+				});
+				$('#buttonPlEmpty').click(function(){
+					sendCommand({'command':'pl_empty'})
+					updatePlayList(true);
+					return false;
+				});
+				$('#buttonLoop').click(function(){
+					sendCommand({'command':'pl_loop'});
+					return false;
+				});
+				$('#buttonRepeat').click(function(){
+					sendCommand({'command':'pl_repeat'});
+					return false;
+				});
+				$('#buttonShuffle').click(function(){
+					sendCommand({'command':'pl_random'});
+					return false;
+				})
+				$('#buttonRefresh').click(function(){
+				    updatePlayList(true);
+				    return false;
+				});
+				$('#buttonPlPlay').click(function(){
+					sendCommand({
+						'command': 'pl_play',
+						'id':$('.jstree-clicked','#libraryTree').first().parents().first().attr('id').substr(5)
+					})
+					return false;
+				});
+				$('#buttonPlAdd').click(function(){
+					$('.jstree-clicked','#libraryTree').each(function(){
+						if($(this).parents().first().attr('uri')){
+							sendCommand({
+								'command':'in_enqueue',
+								'input' : $(this).parents().first().attr('uri')
+							});
+						};
+					});
+					$('#libraryTree').jstree('deselect_all');
+					setTimeout(function(){updatePlayList(true);},1000);
+					return false;
+				});
+				$('#buttonStreams, #buttonStreams2').click(function(){
+					updateStreams();
+					$('#window_streams').dialog('open');
+				});
+				$('#buttonSout').click(function(){
+					if(current_que=='main'){
+						$('#windowStreamConfirm').dialog('open');
+					}else{
+						$('#player').empty();
+						current_que		=	'main';
+						sendVLMCmd('del Current');
+						updateStatus();
+					}
+					return false;
+				});
+				$('#qrCodeConfirm').dialog({
+					autoOpen: false,
+					width:600,
+					modal: true,
+					buttons:{
+						"<?vlc gettext("Yes") ?>":function(){
+							$(this).dialog('close');
+							var urlimg = $('#mobileintflink').prop('href');
+							var codeimg = $('<img width="350" height="350" alt="qrcode"/>');
+							codeimg.attr('src', 'https://chart.apis.google.com/chart?cht=qr&chs=350x350&chld=L&choe=UTF-8&chl=' + encodeURIComponent(urlimg));
+							codeimg.dialog({width: 350, height: 350, title: "<?vlc gettext("QR Code") ?>"});
+						},
+						"<?vlc gettext("No") ?>":function(){
+							$(this).dialog('close');
+							window.location = $('#mobileintflink').attr('href');
+						}
+					}
+				});
+				$('#windowStreamConfirm').dialog({
+					autoOpen: false,
+					width:600,
+					modal: true,
+					buttons:{
+						"<?vlc gettext("Yes") ?>":function(){
+							var file			=	$('[current="current"]','#libraryTree').length>0 ? $('[current="current"]','#libraryTree').first().attr('uri') : ($('.jstree-clicked','#libraryTree').length>0 ? $('.jstree-clicked','#libraryTree').first().parents().first().attr('uri') : ($('#plid_'+current_playlist_id).attr('uri') ? $('#plid_'+current_playlist_id).attr('uri') : false));
+							if(file){
+								if($('#viewContainer').css('display')=='none'){
+									$('#buttonViewer').click();
+								}
+								var defaultStream	=	'new Current broadcast enabled input "'+file+'" output #transcode{vcodec=FLV1,vb=4096,fps=25,scale=1,acodec=mp3,ab=512,samplerate=44100,channels=2}:std{access='+$('#stream_protocol').val()+',mux=avformat{{mux=flv}},dst=0.0.0.0:'+$('#stream_port').val()+'/'+$('#stream_file').val()+'}';
+								sendVLMCmd('del Current;'+defaultStream+';control Current play');
+								$('#player').attr('href',$('#stream_protocol').val()+'://'+$('#stream_host').val()+':'+$('#stream_port').val()+'/'+$('#stream_file').val());
+								current_que			=	'stream';
+								updateStreams();
+							}
+							$(this).dialog('close');
+						},
+						"<?vlc gettext("No") ?>":function(){
+							$(this).dialog('close');
+						}
+					}
+				});
+				$('#viewContainer').animate({height: 'toggle'});
+			});
+		</script>
+
+    <!-- Load Font Awesome for media icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        /* Custom scrollbar for Catppuccin feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6e738d; /* ctp-overlay0 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c6a0f6; /* ctp-red */
+        }
+        
+        /* Custom input range styling for the mini-player progress bar */
+        #progress-bar {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            border-radius: 0; /* Flat edge on the footer */
+            outline: none;
+        }
+    </style>
+
+    <!-- Catppuccin Macchiato Color Palette for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ctp-base': '#24273a',     /* Darkest Background */
+                        'ctp-mantle': '#363a4f',   /* Card Background */
+                        'ctp-surface': '#494d64',  /* Controls BG / Footer */
+                        'ctp-text': '#cad3f5',     /* Main Text */
+                        'ctp-subtext1': '#b8c0e0', /* Secondary Text */
+                        'ctp-red': '#ed8796',      /* PRIMARY ACCENT: YTM Red/Pink */
+                        'ctp-mauve': '#c6a0f6',    /* Secondary Accent */
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+
+<!-- The body is set up as a column flex container for the fixed top/bottom and scrollable middle -->
+<body class="bg-ctp-base text-ctp-text font-sans flex flex-col min-h-screen">
+
+    <!-- 2. Main Content Area (Scrollable Track View) -->
+    <main id="main-content" class="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-start pt-10 pb-24">
+        
+        <!-- Large Album Art / Video Placeholder (Central focus for YTM) -->
+        <div class="w-full max-w-sm aspect-square bg-ctp-mantle rounded-xl shadow-2xl flex items-center justify-center relative mb-8">
+						<img class="fa-solid fa-video text-ctp-subtext1/50 text-6xl" id="albumArt" src="/art" alt="Album Art"/>
+        </div>
+
+        <!-- Track Information -->
+        <div class="text-center w-full max-w-sm px-4">
+						<h2 id="mediaTitle" class="dynamic text-ctp-text text-2xl font-bold mb-1"></h2>
+            <p id="mediaArtist" class="dynamic text-ctp-subtext1 text-lg font-medium"></p>
+        </div>
+
+        <!-- Main Controls (Repeat, Shuffle, etc.) -->
+        <div class="flex justify-around items-center w-full max-w-sm my-6 text-ctp-subtext1">
+            <button id="buttonShuffle" class="hover:text-ctp-mauve transition p-2"><i class="fa-solid fa-shuffle text-xl"></i></button>
+            <button id="buttonPrev" class="hover:text-ctp-text transition p-2"><i class="fa-solid fa-backward-step text-2xl"></i></button>
+            
+            <button id="buttonPlay" class="text-ctp-base bg-ctp-mauve hover:bg-ctp-mauve/90 transition rounded-full w-14 h-14 flex items-center justify-center shadow-xl mx-6" aria-label="Play/Pause">
+                <i id="main-play-icon" class="fa-solid fa-play text-2xl ml-0.5"></i>
+            </button>
+            
+            <button id="buttonNext" class="hover:text-ctp-text transition p-2"><i class="fa-solid fa-forward-step text-2xl"></i></button>
+            <button id="buttonRepeat" class="hover:text-ctp-mauve transition p-2"><i class="fa-solid fa-repeat text-xl"></i></button>
+        </div>
+        
+        <!-- Times Display -->
+        <div class="flex justify-between w-full max-w-sm px-4 text-ctp-subtext1 text-xs">
+            <span id="currentTime" class="dynamic"></span>
+						<span id="totalTime" class="dynamic"></span>
+        </div>
+
+        <!-- Related Content Mock -->
+				<div class="mt-8 w-full max-w-xl space-y-4">
+            <h3 class="text-ctp-text text-xl font-semibold border-b border-ctp-surface pb-2">Playlist</h3>
+            <div id="nextPlaylistContainer" class="space-y-2">
+            		<p class="text-ctp-subtext1">Loading playlist...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3. Mini-Player (Fixed Bottom Bar - YTM Style) -->
+    <footer id="mini-player" class="w-full h-20 bg-ctp-surface border-t border-ctp-base/50 flex flex-col justify-start shadow-2xl flex-shrink-0 fixed bottom-0 left-0 right-0">
+        
+        <!-- Progress Bar (Sits on top edge) -->
+        <div class="relative h-1 w-full">
+            <div id="progress-bar" title="<?vlc gettext("Seek Time") ?>"/>
+        </div>
+
+        <!-- Controls Row -->
+        <div class="flex items-center justify-between flex-1 p-2 md:p-3">
+            <!-- Track Info & Album Art -->
+            <div class="flex items-center space-x-3 flex-1 min-w-0">
+                <div class="w-10 h-10 bg-ctp-mantle rounded-md flex-shrink-0 overflow-hidden shadow">
+                    <!-- Mock Album Art Placeholder -->
+                    <img id="albumArt" src="/art" alt="Album Art" class="fa-solid fa-compact-disc text-ctp-subtext1/50 text-xl flex items-center justify-center h-full"/>
+                </div>
+                <div class="truncate min-w-0">
+                    <p id="mediaTitle2" class="dynamic text-ctp-text text-sm font-medium truncate"/>
+                    <p id="mediaArtist2" class="dynamic text-ctp-subtext1 text-xs truncate"/>
+                </div>
+            </div>
+
+            <!-- Right Controls (Skip/Play/Pause) -->
+            <div class="flex items-center space-x-4 flex-shrink-0">
+                 <button id="buttonNext2" class="text-ctp-subtext1 hover:text-ctp-text transition hidden sm:block" aria-label="Next">
+                    <i class="fa-solid fa-forward text-lg"></i>
+                </button>
+                <button id="buttonPlay2" class="text-ctp-text hover:text-ctp-mauve transition p-2" aria-label="Play/Pause">
+                    <i id="footer-play-icon" class="fa-solid fa-play text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+		<div class="footer hidden">VLC</div>
+</body>
+</html>
