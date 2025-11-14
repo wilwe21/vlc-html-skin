@@ -32,9 +32,9 @@ function updateStatus() {
                 $('#currentVolume').append(Math.round($('volume', data).text() / 2.56) + '%');
                 /* Don't interfere with the user's action */
                 if (!$('#volumeSlider').data('clicked')) {
-                    $('#volumeSlider').slider({
-                        value: ($('volume', data).text() / 5.12)
-                    });
+					let v = ($('volume', data).text() / 5.12);
+					$("#volumeSlider").css({"background": `linear-gradient(to right, #c6a0f6 0%, #c6a0f6 ${v}%, #24273A ${v}%, #24273A 100%)`})
+
                 }
                 $('#rateSlider').slider({
                     value: ($('rate', data).text())
